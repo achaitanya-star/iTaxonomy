@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import io
+import json
+import os
+import threading
 from urllib.parse import parse_qs, urlencode
 
 import server
 
-# Database schema is created idempotently when a Vercel function instance starts.
-server.init()
+_ready = False
+_init_lock = threading.Lock()
 
 
 class MemorySocket:
@@ -56,15 +59,28 @@ def dispatch(method, path, query_string, headers, body):
 
 
 async def app(scope, receive, send):
+    global _ready
     if scope["type"] != "http":
         return
-    chunks = []
-    while True:
-        message = await receive()
-        chunks.append(message.get("body", b""))
-        if not message.get("more_body", False):
-            break
-    headers = {key.decode("latin-1"): value.decode("latin-1") for key, value in scope.get("headers", [])}
-    status, response_headers, body = dispatch(scope["method"], scope["path"], scope.get("query_string", b""), headers, b"".join(chunks))
-    await send({"type": "http.response.start", "status": status, "headers": response_headers})
-    await send({"type": "http.response.body", "body": body})
+    try:
+        if not _ready:
+            with _init_lock:
+                if not _ready:
+                    if os.environ.get("VERCEL") and not os.environ.get("DATABASE_URL"):
+                        raise RuntimeError("DATABASE_URL is missing. Connect a PostgreSQL provider to this Vercel project, then redeploy.")
+                    server.init()
+                    _ready = True
+        chunks = []
+        while True:
+            message = await receive()
+            chunks.append(message.get("body", b""))
+            if not message.get("more_body", False):
+                break
+        headers = {key.decode("latin-1"): value.decode("latin-1") for key, value in scope.get("headers", [])}
+        status, response_headers, body = dispatch(scope["method"], scope["path"], scope.get("query_string", b""), headers, b"".join(chunks))
+        await send({"type": "http.response.start", "status": status, "headers": response_headers})
+        await send({"type": "http.response.body", "body": body})
+    except Exception as exc:
+        body = json.dumps({"error": f"Workspace startup failed: {type(exc).__name__}: {exc}"}).encode("utf-8")
+        await send({"type": "http.response.start", "status": 503, "headers": [(b"content-type", b"application/json; charset=utf-8"), (b"content-length", str(len(body)).encode())]})
+        await send({"type": "http.response.body", "body": body})
