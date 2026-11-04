@@ -14,8 +14,26 @@ def postgres_url():
     for name in POSTGRES_ENV_NAMES:
         if os.environ.get(name):
             return os.environ[name]
-    suffixes = tuple("_" + name for name in POSTGRES_ENV_NAMES)
-    return next((value for name, value in os.environ.items() if name.endswith(suffixes) and value), None)
+    # Prefer a prefixed DATABASE_URL over a prefixed POSTGRES_URL. Marketplace
+    # resources may expose both names, and they can target different endpoints.
+    for base_name in POSTGRES_ENV_NAMES:
+        suffix = "_" + base_name
+        for name in sorted(os.environ):
+            if name.endswith(suffix) and os.environ[name]:
+                return os.environ[name]
+    return None
+
+
+def postgres_url_name():
+    for name in POSTGRES_ENV_NAMES:
+        if os.environ.get(name):
+            return name
+    for base_name in POSTGRES_ENV_NAMES:
+        suffix = "_" + base_name
+        for name in sorted(os.environ):
+            if name.endswith(suffix) and os.environ[name]:
+                return name
+    return None
 
 
 def has_postgres_url():

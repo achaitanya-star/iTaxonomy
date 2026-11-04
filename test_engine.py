@@ -40,6 +40,21 @@ class EngineChecks(unittest.TestCase):
             for name,value in previous.items():
                 if value is None:os.environ.pop(name,None)
                 else:os.environ[name]=value
+    def test_database_url_suffix_wins_over_postgres_url_suffix(self):
+        names=('PURPLEFIELD_DATABASE_URL','PURPLEFIELD_POSTGRES_URL')
+        previous={name:os.environ.get(name) for name in names}
+        try:
+            for name in names:os.environ.pop(name,None)
+            # Insert POSTGRES_URL first to ensure environment insertion order
+            # does not decide which database gets the app's schema.
+            os.environ['PURPLEFIELD_POSTGRES_URL']='postgresql://example.invalid/other'
+            os.environ['PURPLEFIELD_DATABASE_URL']='postgresql://example.invalid/db'
+            self.assertEqual(db.postgres_url(),'postgresql://example.invalid/db')
+            self.assertEqual(db.postgres_url_name(),'PURPLEFIELD_DATABASE_URL')
+        finally:
+            for name,value in previous.items():
+                if value is None:os.environ.pop(name,None)
+                else:os.environ[name]=value
     def test_marketplace_prefixed_url_uses_postgres_schema(self):
         names=(*db.POSTGRES_ENV_NAMES,'PURPLEFIELD_DATABASE_URL','PURPLEFIELD_POSTGRES_URL')
         previous={name:os.environ.get(name) for name in names}

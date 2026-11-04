@@ -7,7 +7,7 @@ import os
 from urllib.parse import parse_qs, urlencode
 
 import server
-from db import has_postgres_url
+from db import connect as open_database, has_postgres_url, postgres_url_name
 
 class MemorySocket:
     def __init__(self, request_bytes):
@@ -77,6 +77,28 @@ def app_for(route: str):
         try:
             if os.environ.get("VERCEL") and not has_postgres_url():
                 raise RuntimeError("PostgreSQL is not connected. Add DATABASE_URL (or POSTGRES_URL) to this Vercel environment and redeploy.")
+            if route == "/api/db-status":
+                connection = open_database(server.DB)
+                try:
+                    row = connection.execute(
+                        "SELECT current_database() AS database_name, current_schema() AS schema_name, "
+                        "to_regclass('files')::text AS files_table"
+                    ).fetchone()
+                    result = {
+                        "connectionVariable": postgres_url_name(),
+                        "database": row["database_name"],
+                        "schema": row["schema_name"],
+                        "filesTable": row["files_table"],
+                    }
+                finally:
+                    connection.close()
+                body = json.dumps(result).encode("utf-8")
+                await send({"type": "http.response.start", "status": 200, "headers": [
+                    (b"content-type", b"application/json; charset=utf-8"),
+                    (b"content-length", str(len(body)).encode()),
+                ]})
+                await send({"type": "http.response.body", "body": body})
+                return
             # Idempotent DDL on each request handles cold starts and schema
             # changes consistently across Vercel's separate function instances.
             server.init()
