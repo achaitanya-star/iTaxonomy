@@ -1,4 +1,6 @@
 import json, tempfile, unittest, os
+from contextlib import contextmanager
+from unittest.mock import patch
 import io
 from pathlib import Path
 import server
@@ -34,6 +36,24 @@ class EngineChecks(unittest.TestCase):
             os.environ.pop('PURPLEFIELD_DATABASE_URL')
             os.environ['PURPLEFIELD_POSTGRES_URL']='postgresql://example.invalid/other'
             self.assertEqual(db.postgres_url(),'postgresql://example.invalid/other')
+        finally:
+            for name,value in previous.items():
+                if value is None:os.environ.pop(name,None)
+                else:os.environ[name]=value
+    def test_marketplace_prefixed_url_uses_postgres_schema(self):
+        names=(*db.POSTGRES_ENV_NAMES,'PURPLEFIELD_DATABASE_URL','PURPLEFIELD_POSTGRES_URL')
+        previous={name:os.environ.get(name) for name in names}
+        captured=[]
+        class Recorder:
+            def executescript(self,sql):captured.append(sql)
+        @contextmanager
+        def fake_connect():yield Recorder()
+        try:
+            for name in names:os.environ.pop(name,None)
+            os.environ['PURPLEFIELD_DATABASE_URL']='postgresql://example.invalid/db'
+            with patch.object(server,'connect',fake_connect):server.init()
+            self.assertIn('BIGSERIAL PRIMARY KEY',captured[0])
+            self.assertNotIn('AUTOINCREMENT',captured[0])
         finally:
             for name,value in previous.items():
                 if value is None:os.environ.pop(name,None)

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, unquote
-from db import connect as open_database
+from db import connect as open_database, has_postgres_url
 
 ROOT=Path(__file__).parent
 DB=Path(os.environ.get('EIS_DB', ROOT/'data'/'eis.db'))
@@ -36,7 +36,7 @@ def init():
   CREATE TABLE IF NOT EXISTS rules(id TEXT PRIMARY KEY,name TEXT,field TEXT,operator TEXT,pattern TEXT,l1 TEXT,l2 TEXT,l3 TEXT,l4 TEXT,priority INTEGER DEFAULT 100,enabled INTEGER DEFAULT 1,approved INTEGER DEFAULT 0,created TEXT);
   CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,at TEXT,actor TEXT,action TEXT,entity TEXT,entity_id TEXT,details TEXT);
   CREATE TABLE IF NOT EXISTS spotchecks(id INTEGER PRIMARY KEY,file_id TEXT,row_id INTEGER,expected TEXT,actual TEXT,correct INTEGER,reviewer TEXT,at TEXT);'''
-  if os.environ.get('DATABASE_URL'):
+  if has_postgres_url():
    schema=schema.replace('INTEGER PRIMARY KEY AUTOINCREMENT','BIGSERIAL PRIMARY KEY').replace('id INTEGER PRIMARY KEY','id BIGSERIAL PRIMARY KEY')
   c.executescript(schema)
 def audit(c,action,entity,eid,details,actor='Local SME'):
