@@ -9,7 +9,13 @@ POSTGRES_ENV_NAMES = ("DATABASE_URL", "POSTGRES_URL", "POSTGRES_URL_NON_POOLING"
 
 
 def postgres_url():
-    return next((os.environ.get(name) for name in POSTGRES_ENV_NAMES if os.environ.get(name)), None)
+    # Prefer standard names; Marketplace integrations can prefix variables with
+    # their resource name (for example PURPLEFIELD_DATABASE_URL).
+    for name in POSTGRES_ENV_NAMES:
+        if os.environ.get(name):
+            return os.environ[name]
+    suffixes = tuple("_" + name for name in POSTGRES_ENV_NAMES)
+    return next((value for name, value in os.environ.items() if name.endswith(suffixes) and value), None)
 
 
 def has_postgres_url():

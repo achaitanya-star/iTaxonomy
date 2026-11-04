@@ -24,6 +24,20 @@ class EngineChecks(unittest.TestCase):
             for name,value in previous.items():
                 if value is None:os.environ.pop(name,None)
                 else:os.environ[name]=value
+    def test_marketplace_prefixed_postgres_url_is_detected(self):
+        names=(*db.POSTGRES_ENV_NAMES,'PURPLEFIELD_DATABASE_URL','PURPLEFIELD_POSTGRES_URL')
+        previous={name:os.environ.get(name) for name in names}
+        try:
+            for name in names:os.environ.pop(name,None)
+            os.environ['PURPLEFIELD_DATABASE_URL']='postgresql://example.invalid/db'
+            self.assertEqual(db.postgres_url(),'postgresql://example.invalid/db')
+            os.environ.pop('PURPLEFIELD_DATABASE_URL')
+            os.environ['PURPLEFIELD_POSTGRES_URL']='postgresql://example.invalid/other'
+            self.assertEqual(db.postgres_url(),'postgresql://example.invalid/other')
+        finally:
+            for name,value in previous.items():
+                if value is None:os.environ.pop(name,None)
+                else:os.environ[name]=value
     def test_csv_upload_and_detection(self):
         rows,kind=server.read_upload('sample.csv',b'SKU,Description,MPN,Active,Sales\n1,Bearing,PN-1,Yes,125.50\n')
         self.assertEqual(kind,'CSV'); self.assertEqual(rows[0]['SKU'],'1')

@@ -111,3 +111,5 @@ Each hosted API endpoint has its own Python function file under `api/` (for exam
 ### Vercel database requirement
 
 Vercel's application directory is read-only, so hosted runs must use PostgreSQL. SQLite is kept for local Windows use only. The database layer accepts `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, or `POSTGRES_PRISMA_URL`; the Marketplace integration typically supplies `DATABASE_URL`. Connect the provider to this Vercel project and the Production environment, then redeploy. If the function responds with “PostgreSQL is not connected,” the selected deployment does not have a Postgres URL available.
+
+Connection variable names may be prefixed by the Vercel Marketplace resource name. The app accepts names such as `PURPLEFIELD_DATABASE_URL` and `PURPLEFIELD_POSTGRES_URL`, as well as the unprefixed standard forms.
