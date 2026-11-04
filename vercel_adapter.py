@@ -77,7 +77,7 @@ def app_for(route: str):
         try:
             if os.environ.get("VERCEL") and not has_postgres_url():
                 raise RuntimeError("PostgreSQL is not connected. Add DATABASE_URL (or POSTGRES_URL) to this Vercel environment and redeploy.")
-            if route == "/api/db-status":
+            if route in ("/api/db-status", "/api/dbstatus"):
                 connection = open_database(server.DB)
                 try:
                     row = connection.execute(
