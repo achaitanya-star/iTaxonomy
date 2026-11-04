@@ -103,3 +103,7 @@ Local run uses SQLite unless `DATABASE_URL` is set. Avoid pointing local testing
 ### Vercel troubleshooting
 
 If the overview reports that the workspace is unavailable, open the Vercel project → **Storage** and confirm PostgreSQL is connected to the same project and deployment environment. In **Settings → Environment Variables**, verify `DATABASE_URL` exists for that environment, then redeploy so the function receives it. If an API call still fails, inspect the failed `/api/...` request and its Vercel Function Logs; the hosted copy now displays the HTTP status or database startup error in the page message.
+
+### If `/api/state` shows `Not found`
+
+The Python function may receive an API path with its `/api` prefix removed by Vercel. The current adapter normalizes both forms (`/state` and `/api/state`). Replace the old project files with this updated package and redeploy; then verify that `/api/state` returns a JSON object containing `files`, `taxonomy`, and `rules`.

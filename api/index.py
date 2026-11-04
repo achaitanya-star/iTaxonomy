@@ -37,6 +37,22 @@ def dispatch(method, path, query_string, headers, body):
     rewritten = query.pop("__path", [None])[0]
     if rewritten:
         path = rewritten
+    if not path.startswith("/api/"):
+        # Vercel may invoke api/index.py with the function prefix removed from
+        # ASGI scope.path (for example /state instead of /api/state).
+        for key in ("x-invoke-path", "x-matched-path", "x-original-url", "x-forwarded-uri"):
+            candidate = headers.get(key)
+            if candidate and candidate.startswith("/api/"):
+                path = candidate.split("?", 1)[0]
+                break
+        if path.startswith("/api/index.py/"):
+            path = "/api/" + path[len("/api/index.py/"):]
+        elif path.startswith("/api/index/"):
+            path = "/api/" + path[len("/api/index/"):]
+        elif path and not path.startswith("/"):
+            path = "/api/" + path.removeprefix("api/")
+        elif path.startswith("/") and not path.startswith("/api/") and path != "/api":
+            path = "/api" + path
     query_bytes = urlencode(query, doseq=True)
     target = path + ("?" + query_bytes if query_bytes else "")
     lines = [f"{method} {target} HTTP/1.1", "Host: vercel.local"]
