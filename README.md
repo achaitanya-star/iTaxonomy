@@ -107,3 +107,7 @@ If the overview reports that the workspace is unavailable, open the Vercel proje
 ### If `/api/state` shows `Not found`
 
 The Python function may receive an API path with its `/api` prefix removed by Vercel. The current adapter normalizes both forms (`/state` and `/api/state`). Replace the old project files with this updated package and redeploy; then verify that `/api/state` returns a JSON object containing `files`, `taxonomy`, and `rules`.
+
+### Vercel API routing detail
+
+The hosted browser sends API calls to the single Python function at `/api` and includes the intended endpoint in the `__path` query parameter. The rewrite maps direct URLs such as `/api/state` into that same function. This avoids relying on Vercel's internal path shape for a single-file ASGI function.
