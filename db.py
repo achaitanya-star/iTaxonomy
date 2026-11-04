@@ -50,10 +50,9 @@ def connect(db_path=None):
         return c
 
     import psycopg
-    from psycopg.rows import set_row_factory
 
     c = psycopg.connect(url, connect_timeout=10)
-    set_row_factory(c, lambda cursor: lambda values: HybridRow(cursor, values))
+    c.row_factory = lambda cursor: lambda values: HybridRow(cursor, values)
     return PostgresConnection(c)
 
 

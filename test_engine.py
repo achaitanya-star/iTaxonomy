@@ -38,6 +38,15 @@ class EngineChecks(unittest.TestCase):
             for name,value in previous.items():
                 if value is None:os.environ.pop(name,None)
                 else:os.environ[name]=value
+    def test_hybrid_postgres_row_supports_names_and_positions(self):
+        class Column:
+            def __init__(self,name):self.name=name
+        class Cursor:
+            description=[Column('sku'),Column('active')]
+        row=db.HybridRow(Cursor(),('A-1',1))
+        self.assertEqual(row['sku'],'A-1')
+        self.assertEqual(row[0],'A-1')
+        self.assertEqual(dict(row),{'sku':'A-1','active':1})
     def test_csv_upload_and_detection(self):
         rows,kind=server.read_upload('sample.csv',b'SKU,Description,MPN,Active,Sales\n1,Bearing,PN-1,Yes,125.50\n')
         self.assertEqual(kind,'CSV'); self.assertEqual(rows[0]['SKU'],'1')
