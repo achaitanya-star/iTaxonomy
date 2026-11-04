@@ -104,10 +104,6 @@ Local run uses SQLite unless `DATABASE_URL` is set. Avoid pointing local testing
 
 If the overview reports that the workspace is unavailable, open the Vercel project → **Storage** and confirm PostgreSQL is connected to the same project and deployment environment. In **Settings → Environment Variables**, verify `DATABASE_URL` exists for that environment, then redeploy so the function receives it. If an API call still fails, inspect the failed `/api/...` request and its Vercel Function Logs; the hosted copy now displays the HTTP status or database startup error in the page message.
 
-### If `/api/state` shows `Not found`
+### Vercel API routes
 
-The Python function may receive an API path with its `/api` prefix removed by Vercel. The current adapter normalizes both forms (`/state` and `/api/state`). Replace the old project files with this updated package and redeploy; then verify that `/api/state` returns a JSON object containing `files`, `taxonomy`, and `rules`.
-
-### Vercel API routing detail
-
-The hosted browser sends API calls to the single Python function at `/api` and includes the intended endpoint in the `__path` query parameter. The rewrite maps direct URLs such as `/api/state` into that same function. This avoids relying on Vercel's internal path shape for a single-file ASGI function.
+Each hosted API endpoint has its own Python function file under `api/` (for example, `api/state.py` serves `/api/state` and `api/upload.py` serves `/api/upload`). There is no catch-all rewrite. Keep the repository root set to the folder containing `vercel.json`, `api/`, `vercel_adapter.py`, and `server.py`. After redeploy, `/api/state` should return a JSON object containing `files`, `taxonomy`, and `rules`.
