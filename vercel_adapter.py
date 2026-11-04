@@ -4,15 +4,10 @@ from __future__ import annotations
 import json
 import io
 import os
-import threading
 from urllib.parse import parse_qs, urlencode
 
 import server
 from db import has_postgres_url
-
-_ready = False
-_init_lock = threading.Lock()
-
 
 class MemorySocket:
     def __init__(self, request_bytes):
@@ -77,17 +72,14 @@ def dispatch(method, path, query_string, headers, body, forced_path=None):
 
 def app_for(route: str):
     async def app(scope, receive, send):
-        global _ready
         if scope["type"] != "http":
             return
         try:
-            if not _ready:
-                with _init_lock:
-                    if not _ready:
-                        if os.environ.get("VERCEL") and not has_postgres_url():
-                            raise RuntimeError("PostgreSQL is not connected. Add DATABASE_URL (or POSTGRES_URL) to this Vercel environment and redeploy.")
-                        server.init()
-                        _ready = True
+            if os.environ.get("VERCEL") and not has_postgres_url():
+                raise RuntimeError("PostgreSQL is not connected. Add DATABASE_URL (or POSTGRES_URL) to this Vercel environment and redeploy.")
+            # Idempotent DDL on each request handles cold starts and schema
+            # changes consistently across Vercel's separate function instances.
+            server.init()
             chunks = []
             while True:
                 message = await receive()

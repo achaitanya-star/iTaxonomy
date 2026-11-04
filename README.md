@@ -115,3 +115,5 @@ Vercel's application directory is read-only, so hosted runs must use PostgreSQL.
 Connection variable names may be prefixed by the Vercel Marketplace resource name. The app accepts names such as `PURPLEFIELD_DATABASE_URL` and `PURPLEFIELD_POSTGRES_URL`, as well as the unprefixed standard forms.
 
 Schema initialization checks the same prefixed PostgreSQL variable names as the connection layer. This matters when a Vercel Marketplace resource injects variables such as `PURPLEFIELD_DATABASE_URL` rather than the unprefixed `DATABASE_URL`.
+
+Hosted API requests run the idempotent schema initialization before handling the request. This ensures missing tables are created on a fresh database and surfaces schema permissions or migration errors directly in the API response.
