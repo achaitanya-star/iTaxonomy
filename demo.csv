@@ -1,0 +1,6 @@
+SKU,Description,MPN,Product Series,Product Type Code,Active,Sales
+SKF-DEMO-001,SKF deep groove ball bearing 6205,6205-2RS,6200,BRG,Yes,1250
+SKF-DEMO-002,SKF deep groove ball bearing 6206,6206-2RS,6200,BRG,Yes,980
+SKF-DEMO-003,SKF tapered ball bearing,30205-J2,30000,BRG,Yes,440
+DEMO-004,unknown maintenance kit,KIT-01,,KIT,Yes,20
+DEMO-005,deep groove bearing alternate marker,ALT-05,6200,BRG,No,0

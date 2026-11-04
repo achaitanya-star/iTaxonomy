@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "index.html"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api?__path=/api/:path*" }
+  ]
+}
