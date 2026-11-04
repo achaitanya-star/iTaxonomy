@@ -5,6 +5,16 @@ import os
 import sqlite3
 from pathlib import Path
 
+POSTGRES_ENV_NAMES = ("DATABASE_URL", "POSTGRES_URL", "POSTGRES_URL_NON_POOLING", "POSTGRES_PRISMA_URL")
+
+
+def postgres_url():
+    return next((os.environ.get(name) for name in POSTGRES_ENV_NAMES if os.environ.get(name)), None)
+
+
+def has_postgres_url():
+    return bool(postgres_url())
+
 
 class HybridRow(dict):
     """Postgres row supporting both named and positional indexing."""
@@ -20,9 +30,13 @@ class HybridRow(dict):
 
 def connect(db_path=None):
     """Return a DB-API-ish connection used by the existing engine."""
-    url = os.environ.get("DATABASE_URL")
+    url = postgres_url()
     if not url:
         db = Path(db_path or os.environ.get("EIS_DB", Path(__file__).parent / "data" / "eis.db"))
+        if os.environ.get("VERCEL") or str(db).replace("\\", "/").startswith("/var/task/"):
+            raise RuntimeError(
+                "PostgreSQL is not connected. Add DATABASE_URL (or POSTGRES_URL) to this Vercel environment and redeploy."
+            )
         db.parent.mkdir(parents=True, exist_ok=True)
         c = sqlite3.connect(db, timeout=30)
         c.row_factory = sqlite3.Row

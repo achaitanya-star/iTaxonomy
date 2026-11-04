@@ -1,7 +1,8 @@
-import json, tempfile, unittest
+import json, tempfile, unittest, os
 import io
 from pathlib import Path
 import server
+import db
 
 class EngineChecks(unittest.TestCase):
     def setUp(self):
@@ -9,6 +10,20 @@ class EngineChecks(unittest.TestCase):
         server.DB=Path(self.tmp.name)/'test.db'
         server.init()
     def tearDown(self): self.tmp.cleanup()
+    def test_vercel_without_postgres_fails_clearly_without_writing_to_readonly_root(self):
+        names=(*db.POSTGRES_ENV_NAMES,'VERCEL')
+        previous={name:os.environ.get(name) for name in names}
+        try:
+            for name in db.POSTGRES_ENV_NAMES:os.environ.pop(name,None)
+            os.environ['VERCEL']='1'
+            blocked=Path(self.tmp.name)/'readonly-root'/'eis.db'
+            with self.assertRaisesRegex(RuntimeError,'PostgreSQL is not connected'):
+                db.connect(blocked)
+            self.assertFalse(blocked.parent.exists())
+        finally:
+            for name,value in previous.items():
+                if value is None:os.environ.pop(name,None)
+                else:os.environ[name]=value
     def test_csv_upload_and_detection(self):
         rows,kind=server.read_upload('sample.csv',b'SKU,Description,MPN,Active,Sales\n1,Bearing,PN-1,Yes,125.50\n')
         self.assertEqual(kind,'CSV'); self.assertEqual(rows[0]['SKU'],'1')

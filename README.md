@@ -107,3 +107,7 @@ If the overview reports that the workspace is unavailable, open the Vercel proje
 ### Vercel API routes
 
 Each hosted API endpoint has its own Python function file under `api/` (for example, `api/state.py` serves `/api/state` and `api/upload.py` serves `/api/upload`). There is no catch-all rewrite. Keep the repository root set to the folder containing `vercel.json`, `api/`, `vercel_adapter.py`, and `server.py`. After redeploy, `/api/state` should return a JSON object containing `files`, `taxonomy`, and `rules`.
+
+### Vercel database requirement
+
+Vercel's application directory is read-only, so hosted runs must use PostgreSQL. SQLite is kept for local Windows use only. The database layer accepts `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, or `POSTGRES_PRISMA_URL`; the Marketplace integration typically supplies `DATABASE_URL`. Connect the provider to this Vercel project and the Production environment, then redeploy. If the function responds with “PostgreSQL is not connected,” the selected deployment does not have a Postgres URL available.

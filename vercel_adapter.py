@@ -8,6 +8,7 @@ import threading
 from urllib.parse import parse_qs, urlencode
 
 import server
+from db import has_postgres_url
 
 _ready = False
 _init_lock = threading.Lock()
@@ -83,8 +84,8 @@ def app_for(route: str):
             if not _ready:
                 with _init_lock:
                     if not _ready:
-                        if os.environ.get("VERCEL") and not os.environ.get("DATABASE_URL"):
-                            raise RuntimeError("DATABASE_URL is missing. Connect PostgreSQL to this Vercel project and redeploy.")
+                        if os.environ.get("VERCEL") and not has_postgres_url():
+                            raise RuntimeError("PostgreSQL is not connected. Add DATABASE_URL (or POSTGRES_URL) to this Vercel environment and redeploy.")
                         server.init()
                         _ready = True
             chunks = []
