@@ -27,6 +27,7 @@ def connect():
   c.rollback(); raise
  finally:c.close()
 def now(): return datetime.now(timezone.utc).isoformat(timespec='seconds')
+def level_tuple(row): return tuple(row[f'l{i}'] or '' for i in range(1,5))
 def init():
  with connect() as c:
   schema='''CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY,name TEXT,uploaded TEXT,rows INTEGER,sku_col TEXT,description_col TEXT,active_col TEXT,mpn_col TEXT,series_col TEXT,type_col TEXT,sales_col TEXT);
@@ -126,7 +127,7 @@ def import_taxonomy_records(records):
   paths.append((levels,definition,i))
  seen=set()
  with connect() as c:
-  existing={tuple(r) for r in c.execute('SELECT l1,l2,l3,l4 FROM taxonomy')}
+  existing={level_tuple(r) for r in c.execute('SELECT l1,l2,l3,l4 FROM taxonomy')}
   for levels,_,i in paths:
    t=tuple(levels)
    if t in existing or t in seen:raise ValueError(f'Row {i}: taxonomy path is duplicated in this file or already exists.')
@@ -272,7 +273,7 @@ class Handler(BaseHTTPRequestHandler):
     rid=data.get('id');
     with connect() as c:
      candidates=[dict(x) for x in c.execute('SELECT * FROM rules WHERE approved=0'+(' AND id=?' if rid else ''),(rid,) if rid else ())]
-     approved_paths={tuple(x) for x in c.execute('SELECT l1,l2,l3,l4 FROM taxonomy WHERE approved=1')}
+     approved_paths={level_tuple(x) for x in c.execute('SELECT l1,l2,l3,l4 FROM taxonomy WHERE approved=1')}
      eligible=[r for r in candidates if (r['l1'],r['l2'],r['l3'],r['l4']) in approved_paths]
      for rule in eligible:c.execute('UPDATE rules SET approved=1 WHERE id=?',(rule['id'],))
      skipped=len(candidates)-len(eligible); audit(c,'approve','rule',rid or 'all',{'approved':len(eligible),'stillPending':skipped})
@@ -280,8 +281,8 @@ class Handler(BaseHTTPRequestHandler):
    if path=='/api/classify':
     fid=data.get('fileId');
     with connect() as c:
-     approved_paths={tuple(x) for x in c.execute('SELECT l1,l2,l3,l4 FROM taxonomy WHERE approved=1')}
-     rules=[dict(x) for x in c.execute('SELECT * FROM rules WHERE approved=1 AND enabled=1 ORDER BY priority,name') if (x['l1'],x['l2'],x['l3'],x['l4']) in approved_paths]
+     approved_paths={level_tuple(x) for x in c.execute('SELECT l1,l2,l3,l4 FROM taxonomy WHERE approved=1')}
+     rules=[dict(x) for x in c.execute('SELECT * FROM rules WHERE approved=1 AND enabled=1 ORDER BY priority,name') if level_tuple(x) in approved_paths]
      if not rules:return self.send_json({'error':'No approved active rules. Approve taxonomy and rules before bulk assignment.'},400)
      query='SELECT * FROM rows WHERE active=1'+(' AND file_id=?' if fid else '')
      rows=c.execute(query,(fid,) if fid else ()).fetchall(); nclass=nexc=0
