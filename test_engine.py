@@ -63,6 +63,17 @@ class EngineChecks(unittest.TestCase):
         self.assertEqual(status,200)
         state = json.loads(body)
         self.assertEqual(state['files'], [])
+    def test_excel_export_returns_xlsx_workbook(self):
+        status, headers, body = vercel_adapter.dispatch(
+            'GET', '/api/export', b'format=xlsx', {}, b'', forced_path='/api/export'
+        )
+        self.assertEqual(status,200)
+        self.assertIn((b'content-type',b'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),headers)
+        import openpyxl
+        workbook=openpyxl.load_workbook(io.BytesIO(body),read_only=True)
+        exported=list(workbook['Classified SKUs'].iter_rows(values_only=True))
+        self.assertEqual(len(exported),1)
+        self.assertEqual(exported[0][0],'Source File')
     def test_marketplace_prefixed_url_uses_postgres_schema(self):
         names=(*db.POSTGRES_ENV_NAMES,'PURPLEFIELD_DATABASE_URL','PURPLEFIELD_POSTGRES_URL')
         previous={name:os.environ.get(name) for name in names}

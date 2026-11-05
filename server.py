@@ -334,7 +334,7 @@ class Handler(BaseHTTPRequestHandler):
 def serve_export(h):
  q=__import__('urllib.parse').parse.parse_qs(urlparse(h.path).query); fid=q.get('fileId',[''])[0]; fmt=q.get('format',['csv'])[0]
  with connect() as c:
-  rows=[dict(r) for r in c.execute('SELECT files.name,rows.* FROM rows JOIN files ON files.id=rows.file_id WHERE (?="" OR file_id=?) ORDER BY files.name,source_row',(fid,fid))]
+  rows=[dict(r) for r in c.execute("SELECT files.name,rows.* FROM rows JOIN files ON files.id=rows.file_id WHERE (?='' OR file_id=?) ORDER BY files.name,source_row",(fid,fid))]
  headers=['Source File','Source Row','SKU','Description','MPN','Product Series','Product Type Code','Active','Sales','Level 1','Level 2','Level 3','Level 4','Classification Status','Rule ID','Rule Trace','SME Reviewer','SME Note']
  keys=['name','source_row','sku','description','mpn','series','type_code','active','sales','l1','l2','l3','l4','status','rule_id','trace','decision_by','decision_note']
  out=io.StringIO(newline=''); w=csv.writer(out); w.writerow(headers)
