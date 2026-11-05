@@ -70,14 +70,17 @@ def dispatch(method, path, query_string, headers, body, forced_path=None):
     return status, response_headers, payload
 
 
-def app_for(route: str):
+def app_for(route: str, dynamic: bool = False):
     async def app(scope, receive, send):
         if scope["type"] != "http":
             return
         try:
             if os.environ.get("VERCEL") and not has_postgres_url():
                 raise RuntimeError("PostgreSQL is not connected. Add DATABASE_URL (or POSTGRES_URL) to this Vercel environment and redeploy.")
-            if route in ("/api/db-status", "/api/dbstatus"):
+            query = scope.get("query_string", b"")
+            query_values = parse_qs(query.decode("latin-1"), keep_blank_values=True)
+            effective_route = query_values.get("__path", [route])[0] if dynamic else route
+            if effective_route in ("/api/db-status", "/api/dbstatus"):
                 connection = open_database(server.DB)
                 try:
                     row = connection.execute(
@@ -109,10 +112,9 @@ def app_for(route: str):
                 if not message.get("more_body", False):
                     break
             headers = {k.decode("latin-1"): v.decode("latin-1") for k, v in scope.get("headers", [])}
-            query = scope.get("query_string", b"")
-            dispatch_path = route
-            if route == "/api/rule-delete":
-                rule_id = parse_qs(query.decode("latin-1")).get("ruleId", [""])[0]
+            dispatch_path = None if dynamic else route
+            if effective_route == "/api/rule-delete":
+                rule_id = query_values.get("ruleId", [""])[0]
                 dispatch_path = f"/api/rules/{rule_id}"
             status, response_headers, body = dispatch(
                 scope["method"], route, query, headers, b"".join(chunks), forced_path=dispatch_path

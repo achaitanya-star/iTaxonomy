@@ -106,7 +106,7 @@ If the overview reports that the workspace is unavailable, open the Vercel proje
 
 ### Vercel API routes
 
-Each hosted API endpoint has its own Python function file under `api/` (for example, `api/state.py` serves `/api/state` and `api/upload.py` serves `/api/upload`). There is no catch-all rewrite. Keep the repository root set to the folder containing `vercel.json`, `api/`, `vercel_adapter.py`, and `server.py`. After redeploy, `/api/state` should return a JSON object containing `files`, `taxonomy`, and `rules`.
+The hosted app uses one Python function at `api/index.py`; `vercel.json` rewrites `/api/*` to that function and passes the requested API path in `__path`. This keeps the deployment below Vercel Hobby's 12-function limit while retaining all API operations. Keep the repository root set to the folder containing `vercel.json`, `api/`, `vercel_adapter.py`, and `server.py`. After redeploy, `/api/state` should return a JSON object containing `files`, `taxonomy`, and `rules`.
 
 For PostgreSQL troubleshooting, `/api/dbstatus` reports the selected environment-variable **name**, active database and schema, and whether the `files` table is visible. It never returns the connection URL or password. Use this endpoint after deployment to distinguish a wrong database/schema from a schema initialization or deployment issue. `/api/db-status` remains as an alias.
 

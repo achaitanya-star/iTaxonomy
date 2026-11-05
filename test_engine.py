@@ -5,6 +5,7 @@ import io
 from pathlib import Path
 import server
 import db
+import vercel_adapter
 
 class EngineChecks(unittest.TestCase):
     def setUp(self):
@@ -55,6 +56,13 @@ class EngineChecks(unittest.TestCase):
             for name,value in previous.items():
                 if value is None:os.environ.pop(name,None)
                 else:os.environ[name]=value
+    def test_vercel_rewrite_path_dispatches_through_single_api_function(self):
+        status, headers, body = vercel_adapter.dispatch(
+            'GET', '/api', b'__path=%2Fapi%2Fstate', {}, b'', forced_path=None
+        )
+        self.assertEqual(status,200)
+        state = json.loads(body)
+        self.assertEqual(state['files'], [])
     def test_marketplace_prefixed_url_uses_postgres_schema(self):
         names=(*db.POSTGRES_ENV_NAMES,'PURPLEFIELD_DATABASE_URL','PURPLEFIELD_POSTGRES_URL')
         previous={name:os.environ.get(name) for name in names}
